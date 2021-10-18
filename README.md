@@ -3,6 +3,8 @@
 Bidirectional syncing tool to sync local filesystem directories with S3
 buckets.  Written by [Josh Stockin](https://joshstock.in).
 
+**Work in progress.  Not in a functional state.  Do NOT use this.**
+
 ### Behavior
 
 After an initial sync (manually handling conflicts and uncommon files), the S3
