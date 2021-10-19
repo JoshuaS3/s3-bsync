@@ -23,16 +23,31 @@ of the S3 bucket's synced directories.
 ### Installation
 
 Depends on `python3` and `aws-cli`.  Both can be installed with your package
-manager.
+manager.  Requires Python modules `pip` and `setuptools` if you want to install
+on your system path using one of the methods listed below.
 
-Install with `python3 setup.py install`.  Root permissions not required.
-*This program does not manage S3 authentication or `aws-cli` credentials. You
-must do this yourself with the `aws configure` command, or other means of
-IAM/S3 policy.*
+Install with one of the following:
+
+* `./install.sh [interpreter?]` (Preferred)
+* `python3 -m pip install .`
+* `./setup.py` (Not recommended)
+
+Uninstall with one of the following:
+
+* `./install.sh uninstall [interpreter?]` (Preferred)
+* `python3 -m pip uninstall s3-bsync`
+
+`install.sh` is a frontend for `pip (un)install`, configured by setuptools in
+`setup.py`.
+
+Root permissions are not required.  *This program does not manage S3
+authentication or `aws-cli` credentials. You must do this yourself with the
+`aws configure` command, or through some other means of IAM/S3 policy.*
 
 #### Source files
 
 `setup.py` manages installation metadata.
+`install.sh` handles installation and uninstallation using pip.
 
 #### Created files and .s3syncignore
 
@@ -68,18 +83,18 @@ objects from the specified S3 buckets and key prefixes used in the last sync.
 
 ### File structure
 
+Version 1 of the s3sync file format.
+
 ```
 Header {
     File signature - 4 bytes - 9D 9F 53 33
     File version   - 1 byte  - 01
 }
-
 Metadata block {
     Begin metadata block control byte - 9A
     Last synced time                  - 8 bytes uint
     End metadata block control byte   - 9B
 }
-
 Bucket block {
     Begin bucket block control byte - 90
     Bucket name                     - null-terminated string
