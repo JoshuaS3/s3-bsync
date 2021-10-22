@@ -8,6 +8,12 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-__all__ = ("test")
+import logging
 
-test = "Hello, World string"
+logger = logging.getLogger(__name__)
+
+__all__ = ["cli"]
+
+
+def cli():
+    logger.debug("Test")

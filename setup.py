@@ -12,20 +12,18 @@
 import sys
 from setuptools import setup
 
+from src.meta import package_info
+
 setup(
-    name="s3-bsync",
-    version="0.1.0",
-    description="Bidirectional syncing tool to sync local filesystem directories with S3 buckets.",
-    license="MIT License",
-    author="Joshua Stockin",
-    author_email="josh@joshstock.in",
-    url="https://git.joshstock.in/s3-bsync",
-    download_url="https://git.joshstock.in/s3-bsync.git",
+    name=package_info["name"],
+    version=package_info["version_string"],
+    description=package_info["description"],
+    license=package_info["license"],
+    author=package_info["author"],
+    author_email=package_info["author_email"],
+    url=package_info["url"],
+    download_url=package_info["download_url"],
     package_dir={"s3_bsync": "src"},
     packages=["s3_bsync", "s3_bsync.classes"],
-    entry_points={
-        "console_scripts": [
-            "s3-bsync = s3_bsync.__main__:main"
-        ]
-    }
+    entry_points={"console_scripts": ["s3-bsync = s3_bsync.__main__:main"]},
 )
