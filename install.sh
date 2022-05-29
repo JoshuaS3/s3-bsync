@@ -4,8 +4,12 @@
 PYTHON_MAJOR=3
 PYTHON_MINOR=6
 ACCEPTABLE_PYTHON_COMMANDS="python3 python3.10 python3.9 python3.8 python3.7 python3.6 python"
-REQUIRED_PYTHON_MODULES=$(cat requirements.txt)
 
+while read -r requirement
+do
+    REQUIRED_PIP_MODULES="$REQUIRED_PIP_MODULES $(sed -r "s/:.*//g" <<< $requirement)"
+    REQUIRED_PYTHON_MODULES="$REQUIRED_PYTHON_MODULES $(sed -r "s/.*://g" <<< $requirement)"
+done < requirements.txt
 
 # Plumbing
 set -o pipefail
@@ -49,6 +53,7 @@ if [ -z $UNINSTALL ]; then
     echo "${YELLOW}Running in ${LYELLOW}INSTALL${YELLOW} mode${RESTORE}"
 else
     echo "${YELLOW}Running in ${LYELLOW}UNINSTALL${YELLOW} mode${RESTORE}"
+    REQUIRED_PIP_MODULES="pip"
     REQUIRED_PYTHON_MODULES="pip"
 fi
 
@@ -94,13 +99,16 @@ echo "  Version [ ${LCYAN}$PYTHON_VERSION_STRING${RESTORE} ] acceptable"
 
 # Verifying required modules are installed
 echo "${LIGHTGRAY}Checking Python modules installed${RESTORE}"
-for MODULE in $REQUIRED_PYTHON_MODULES
+for MODULE in $(seq 1 $(wc -w <<< $REQUIRED_PIP_MODULES))
 do
-    if ! $PYTHON_COMMAND -c "import $MODULE" &> /dev/null; then
-        echo "  ${RED}Required Python module ${RESTORE}[ ${LBLUE}$MODULE${RESTORE} ] ${RED}not found${RESTORE}"
+    PIP_MODULE=$(awk -v N=$MODULE '{print $N}' <<< "$REQUIRED_PIP_MODULES")
+    PYTHON_MODULE=$(awk -v N=$MODULE '{print $N}' <<< "$REQUIRED_PYTHON_MODULES")
+    if ! $PYTHON_COMMAND -c "import $PYTHON_MODULE" &> /dev/null; then
+        echo "  ${RED}Required Python module ${RESTORE}[ ${LBLUE}$PYTHON_MODULE${RESTORE} ] ${RED}not found${RESTORE}"
+        echo "  Install with ${PURPLE}$PYTHON_COMMAND -m pip install $PIP_MODULE${RESTORE}"
         exit 1
     fi
-    echo "  Module [ ${LBLUE}$MODULE${RESTORE} ] found"
+    echo "  Module [ ${LBLUE}$PYTHON_MODULE${RESTORE} ] found"
 done
 echo "  ${GREEN}All required modules found${RESTORE}"
 

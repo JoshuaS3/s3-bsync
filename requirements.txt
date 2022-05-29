@@ -1,2 +1,4 @@
 pip
 setuptools
+awscli
+python-gnupg:gnupg
