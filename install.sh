@@ -2,8 +2,8 @@
 
 # Script variables
 PYTHON_MAJOR=3
-PYTHON_MINOR=6
-ACCEPTABLE_PYTHON_COMMANDS="python3 python3.10 python3.9 python3.8 python3.7 python3.6 python"
+PYTHON_MINOR=7
+ACCEPTABLE_PYTHON_COMMANDS="python3 python3.10 python3.9 python3.8 python3.7 python"
 
 while read -r requirement
 do
