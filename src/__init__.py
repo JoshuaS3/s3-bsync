@@ -8,7 +8,4 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-import s3_bsync.meta
-import s3_bsync.command_parse
-import s3_bsync.cli
-import s3_bsync.classes
+from . import meta, command_parse, cli, classes

@@ -10,12 +10,16 @@
 
 __all__ = ["package_info"]
 
+major = 0
+minor = 1
+patch = 0
+
 # Consolidated information for setup.py and other scripts
 package_info = {
-    "version_major": 0,
-    "version_minor": 1,
-    "version_patch": 0,
-    "version_string": f"0.1.0",
+    "version_major": major,
+    "version_minor": minor,
+    "version_patch": patch,
+    "version_string": f"{major}.{minor}.{patch}",
     "name": "s3-bsync",
     "description": "Bidirectional syncing tool to sync local filesystem directories with S3 buckets.",
     "license": "MIT License",

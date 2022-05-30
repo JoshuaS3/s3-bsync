@@ -101,8 +101,11 @@ Bucket block {
     Directory map {
         Begin directory map block control byte - 92
         Path to local directory                - null-terminated string
-        S3 key prefix                          - null-terminated string
+        S3 key prefix (no `/` termination)     - null-terminated string
+        Compress (gzip level)                  - 0-11 (4 bytes)
         Recursive sync                         - 1 byte boolean
+        GPG encryption enabled                 - 1 byte boolean
+        GPG encryption email                   - null-terminated string
         End directory map block control byte   - 93
     }...
     Recorded object {

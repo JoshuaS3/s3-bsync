@@ -65,7 +65,13 @@ def command_parse(args: list[str]):
         nargs=1,
         metavar=("SYNCFILE"),
         default=None,
-        help='The s3sync format file used to store tracking and state information. (default: "~/.state.s3sync")',
+        help='The s3sync state file used to store tracking and state information. (default: "~/.state.s3sync")',
+    )
+    group1.add_argument(
+        "--dump",
+        action="store_true",
+        default=False,
+        help="Dump s3sync state file configuration. --dryrun implicitly enabled. (default: False)",
     )
     group1.add_argument(
         "--dryrun",
