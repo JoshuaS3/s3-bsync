@@ -38,11 +38,11 @@ def command_parse(args: list[str]):
     )
 
     parser.add_argument(
-        "-h", "-?", "--help", action="help", help="Display this help message and exit."
+        "--help", "-h", "-?", action="help", help="Display this help message and exit."
     )
     parser.add_argument(
-        "-v",
         "--version",
+        "-v",
         action="version",
         help="Display program and version information and exit.",
         version=f"s3-bsync version {package_info['version_string']}\n"
@@ -55,30 +55,17 @@ def command_parse(args: list[str]):
     )
 
     group1.add_argument(
-        "-i",
         "--init",
+        "-i",
         action="store_true",
         default=False,
-        help="Run in initialize mode. This allows tracking file management and directory options to be used.",
+        help="Run in initialize (edit) mode. This allows tracking file management and directory options to be used.",
     )
     group1.add_argument(
         "--debug",
         action="store_true",
         default=False,
         help="Enables debug mode, which prints program information to stdout.",
-    )
-    group1.add_argument(
-        "--file",
-        nargs=1,
-        metavar=("SYNCFILE"),
-        default=["~/.state.s3sync"],
-        help="The s3sync state file used to store tracking and state information. It should resolve to an absolute path.",
-    )
-    group1.add_argument(
-        "--dump",
-        action="store_true",
-        default=False,
-        help="Dump s3sync state file configuration. --dryrun implicitly enabled.",
     )
     group1.add_argument(
         "--dryrun",
@@ -88,20 +75,33 @@ def command_parse(args: list[str]):
     )
 
     group2 = parser.add_argument_group(
-        "tracking file management", "Requires initialize mode to be enabled."
+        "tracking file management", "Configuring the tracking file."
     )
 
+    group2.add_argument(
+        "--file",
+        nargs=1,
+        metavar=("SYNCFILE"),
+        default=["~/.state.s3sync"],
+        help="The s3sync state file used to store tracking and state information. It should resolve to an absolute path.",
+    )
+    group2.add_argument(
+        "--dump",
+        action="store_true",
+        default=False,
+        help="Dump s3sync state file configuration and exit.",
+    )
     group2.add_argument(
         "--purge",
         action="store_true",
         default=False,
-        help="Deletes the default (if not otherwise specified with --file) tracking configuration file if it exists.",
+        help="Deletes the tracking configuration file if it exists and exits. Requires init mode.",
     )
     group2.add_argument(
         "--overwrite",
         action="store_true",
         default=False,
-        help="Overwrite tracking file with new directory maps instead of appending.",
+        help="Overwrite tracking file with new directory maps instead of appending. Requires init mode.",
     )
 
     group3 = parser.add_argument_group(
@@ -119,7 +119,16 @@ def command_parse(args: list[str]):
         "Local directories must be absolute. S3 destination in `s3://bucket-name/prefix` "
         "format. Example: `--dir /home/josh/Documents s3://joshstockin/Documents`",
     )
-
+    group3.add_argument(
+        "--rmdir",
+        action="append",
+        nargs=1,
+        metavar=("RMPATH"),
+        default=argparse.SUPPRESS,
+        help="Remove tracked directory map by local directory identifier. Running "
+        "`--rmdir /home/josh/Documents` would remove the directory map from the s3sync"
+        "file and stop tracking/syncing that directory.",
+    )
     return parser.parse_args(args)
 
 

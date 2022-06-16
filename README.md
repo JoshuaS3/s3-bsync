@@ -1,9 +1,11 @@
-# s3-bsync
+## s3-bsync
 
 Bidirectional syncing tool to sync local filesystem directories with S3
-buckets.  Written by [Josh Stockin](https://joshstock.in).
+buckets.  Developed by [Josh Stockin](https://joshstock.in) and licensed under
+the MIT License.
 
-**Work in progress.  Not in a functional state.  Do NOT use this.**
+**Work in progress (v0.1.0).  Not in a functional or usable state.  Do NOT use
+this unless you know what you are doing.**
 
 ### Behavior
 
@@ -11,34 +13,36 @@ After an initial sync (manually handling conflicts and uncommon files), the S3
 bucket maintains precedence.  Files with the same size and modify time on both
 hosts are ignored.  A newer copy of a file always overwrites the corresponding
 old, regardless of changes in the old.  (In other words, **there is no manual
-conflict resolution after first sync.  Conflicting files are handled
+conflict resolution after the first sync.  Conflicting files are handled
 automatically as described here.**  This script is meant to run without input
 or output by default, in a cron job for example.)  Untracked files, in either
 S3 or on the local machine, are copied to the opposite host and tracked.
 Tracked files that are moved or removed on either host are moved or removed on
 the corresponding host, with the tracking adjusted accordingly.  Ultimately,
 after a sync, the `.state.s3sync` state tracking file should match the contents
-of the S3 bucket's synced directories.
+of the S3 bucket's and local synced directories.
 
 ### Installation
 
 Depends on `python3` and `aws-cli`.  Both can be installed with your package
 manager.  Requires Python modules `pip` and `setuptools` if you want to install
-on your system path using one of the methods listed below.
+on your system path using one of the methods listed below. Python module
+`python-gnupg` optionally required if you wish to use GPG encryption options.
 
 Install with one of the following:
 
-* `./install.sh [interpreter?]` (Preferred)
+* `./install.sh [<python interpreter>?]` (Preferred)
 * `python3 -m pip install .`
-* `./setup.py` (Not recommended)
+* `python3 ./setup.py install` (Not recommended)
 
 Uninstall with one of the following:
 
-* `./install.sh uninstall [interpreter?]` (Preferred)
+* `./install.sh uninstall [<python interpreter>?]` (Preferred)
 * `python3 -m pip uninstall s3-bsync`
 
 `install.sh` is a frontend for `pip (un)install`, configured by setuptools in
-`setup.py`.
+`setup.py`. The script automatically performs compatibility checks on Python
+interpreter and other required dependencies.
 
 Root permissions are not required.  *This program does not manage S3
 authentication or `aws-cli` credentials. You must do this yourself with the
@@ -47,37 +51,36 @@ authentication or `aws-cli` credentials. You must do this yourself with the
 ### Usage
 
 ```
-usage: s3-bsync [-h] [-v] [-i] [--debug] [--file SYNCFILE] [--dump] [--dryrun] [--purge]
-                [--overwrite] [--dir PATH S3_DEST]
+usage: s3-bsync [--help] [--version] [--init] [--debug] [--dryrun] [--file SYNCFILE]
+                [--dump] [--purge] [--overwrite] [--dir PATH S3_DEST] [--rmdir RMPATH]
 
 Bidirectional syncing tool to sync local filesystem directories with S3 buckets.
 
 optional arguments:
-  -h, -?, --help      Display this help message and exit.
-  -v, --version       Display program and version information and exit.
+  --help, -h, -?      Display this help message and exit.
+  --version, -v       Display program and version information and exit.
 
 program behavior:
   The program runs in sync mode by default.
 
-  -i, --init          Run in initialize mode. This allows tracking file management and
-                      directory options to be used. (default: False)
+  --init, -i          Run in initialize (edit) mode. This allows tracking file
+                      management and directory options to be used. (default: False)
   --debug             Enables debug mode, which prints program information to stdout.
-                      (default: False)
-  --file SYNCFILE     The s3sync state file used to store tracking and state
-                      information. It should resolve to an absolute path. (default:
-                      ['~/.state.s3sync'])
-  --dump              Dump s3sync state file configuration. --dryrun implicitly enabled.
                       (default: False)
   --dryrun            Run program logic without making changes. Useful when paired with
                       debug mode to see what changes would be made. (default: False)
 
 tracking file management:
-  Requires initialize mode to be enabled.
+  Configuring the tracking file.
 
-  --purge             Deletes the default (if not otherwise specified with --file)
-                      tracking configuration file if it exists. (default: False)
+  --file SYNCFILE     The s3sync state file used to store tracking and state
+                      information. It should resolve to an absolute path. (default:
+                      ['~/.state.s3sync'])
+  --dump              Dump s3sync state file configuration and exit. (default: False)
+  --purge             Deletes the tracking configuration file if it exists and exits.
+                      Requires init mode. (default: False)
   --overwrite         Overwrite tracking file with new directory maps instead of
-                      appending. (default: False)
+                      appending. Requires init mode. (default: False)
 
 directory mapping:
   Requires initialize mode to be enabled.
@@ -87,6 +90,9 @@ directory mapping:
                       directories. Local directories must be absolute. S3 destination in
                       `s3://bucket-name/prefix` format. Example: `--dir
                       /home/josh/Documents s3://joshstockin/Documents`
+  --rmdir RMPATH      Remove tracked directory map by local directory identifier.
+                      Running `--rmdir /home/josh/Documents` would remove the directory
+                      map from the s3syncfile and stop tracking/syncing that directory.
 ```
 
 #### Source files
