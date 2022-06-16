@@ -8,7 +8,6 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-from .bucket import *
-from .directory_map import *
-from .object import *
-from .state import *
+from .sync_managed_bucket import *
+from .sync_directory_map import *
+from .sync_fileobject import *

@@ -5,11 +5,13 @@ PYTHON_MAJOR=3
 PYTHON_MINOR=7
 ACCEPTABLE_PYTHON_COMMANDS="python3 python3.10 python3.9 python3.8 python3.7 python"
 
+SCRIPT_SOURCE_DIR=$(dirname -- "${BASH_SOURCE[0]}")
+
 while read -r requirement
 do
     REQUIRED_PIP_MODULES="$REQUIRED_PIP_MODULES $(sed -r "s/:.*//g" <<< $requirement)"
     REQUIRED_PYTHON_MODULES="$REQUIRED_PYTHON_MODULES $(sed -r "s/.*://g" <<< $requirement)"
-done < requirements.txt
+done < $SCRIPT_SOURCE_DIR/requirements.txt
 
 # Plumbing
 set -o pipefail
@@ -26,7 +28,6 @@ LYELLOW=$(echo -en '\033[01;33m')
 LBLUE=$(echo -en '\033[01;34m')
 LCYAN=$(echo -en '\033[01;36m')
 
-SCRIPT_SOURCE_DIR=$(dirname -- "${BASH_SOURCE[0]}")
 
 
 # Handle argument input

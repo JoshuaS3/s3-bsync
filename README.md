@@ -44,6 +44,51 @@ Root permissions are not required.  *This program does not manage S3
 authentication or `aws-cli` credentials. You must do this yourself with the
 `aws configure` command, or through some other means of IAM/S3 policy.*
 
+### Usage
+
+```
+usage: s3-bsync [-h] [-v] [-i] [--debug] [--file SYNCFILE] [--dump] [--dryrun] [--purge]
+                [--overwrite] [--dir PATH S3_DEST]
+
+Bidirectional syncing tool to sync local filesystem directories with S3 buckets.
+
+optional arguments:
+  -h, -?, --help      Display this help message and exit.
+  -v, --version       Display program and version information and exit.
+
+program behavior:
+  The program runs in sync mode by default.
+
+  -i, --init          Run in initialize mode. This allows tracking file management and
+                      directory options to be used. (default: False)
+  --debug             Enables debug mode, which prints program information to stdout.
+                      (default: False)
+  --file SYNCFILE     The s3sync state file used to store tracking and state
+                      information. It should resolve to an absolute path. (default:
+                      ['~/.state.s3sync'])
+  --dump              Dump s3sync state file configuration. --dryrun implicitly enabled.
+                      (default: False)
+  --dryrun            Run program logic without making changes. Useful when paired with
+                      debug mode to see what changes would be made. (default: False)
+
+tracking file management:
+  Requires initialize mode to be enabled.
+
+  --purge             Deletes the default (if not otherwise specified with --file)
+                      tracking configuration file if it exists. (default: False)
+  --overwrite         Overwrite tracking file with new directory maps instead of
+                      appending. (default: False)
+
+directory mapping:
+  Requires initialize mode to be enabled.
+
+  --dir PATH S3_DEST  Directory map to detail which local directory corresponds to S3
+                      bucket and key prefix. Can be used multiple times to set multiple
+                      directories. Local directories must be absolute. S3 destination in
+                      `s3://bucket-name/prefix` format. Example: `--dir
+                      /home/josh/Documents s3://joshstockin/Documents`
+```
+
 #### Source files
 
 `setup.py` manages installation metadata.
@@ -129,7 +174,7 @@ licensed under the [MIT License](LICENSE).
 A form of the following should be present in each source file.
 
 ```txt
-s3-bsync Copyright (c) 2021 Joshua Stockin
+s3-bsync Copyright (c) 2022 Joshua Stockin
 <https://joshstock.in>
 <https://git.joshstock.in/s3-bsync>
 

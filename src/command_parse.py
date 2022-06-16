@@ -22,10 +22,17 @@ __all__ = ["command_parse", "sanitize_arguments"]
 
 
 def command_parse(args: list[str]):
+    class Formatter(
+        argparse.RawDescriptionHelpFormatter,
+        argparse.ArgumentDefaultsHelpFormatter,
+        argparse.HelpFormatter,
+    ):
+        pass
+
     parser = argparse.ArgumentParser(
         prog=package_info["name"],
         description=package_info["description"],
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, width=88),
+        formatter_class=lambda prog: Formatter(prog, width=88),
         allow_abbrev=False,
         add_help=False,
     )
@@ -52,32 +59,32 @@ def command_parse(args: list[str]):
         "--init",
         action="store_true",
         default=False,
-        help="Run in initialize mode. This allows tracking file management and directory options to be used. (default: False)",
+        help="Run in initialize mode. This allows tracking file management and directory options to be used.",
     )
     group1.add_argument(
         "--debug",
         action="store_true",
         default=False,
-        help="Enables debug mode, which prints program information to stdout. (default: False)",
+        help="Enables debug mode, which prints program information to stdout.",
     )
     group1.add_argument(
         "--file",
         nargs=1,
         metavar=("SYNCFILE"),
-        default=None,
-        help='The s3sync state file used to store tracking and state information. (default: "~/.state.s3sync")',
+        default=["~/.state.s3sync"],
+        help="The s3sync state file used to store tracking and state information. It should resolve to an absolute path.",
     )
     group1.add_argument(
         "--dump",
         action="store_true",
         default=False,
-        help="Dump s3sync state file configuration. --dryrun implicitly enabled. (default: False)",
+        help="Dump s3sync state file configuration. --dryrun implicitly enabled.",
     )
     group1.add_argument(
         "--dryrun",
         action="store_true",
         default=False,
-        help="Run program logic without actually making changes. Useful when paired with debug mode to see what changes would be made. (default: False)",
+        help="Run program logic without making changes. Useful when paired with debug mode to see what changes would be made.",
     )
 
     group2 = parser.add_argument_group(
@@ -88,13 +95,13 @@ def command_parse(args: list[str]):
         "--purge",
         action="store_true",
         default=False,
-        help="Deletes the default (if not otherwise specified) tracking configuration file if it exists. (default: False)",
+        help="Deletes the default (if not otherwise specified with --file) tracking configuration file if it exists.",
     )
     group2.add_argument(
         "--overwrite",
         action="store_true",
         default=False,
-        help="Overwrite tracking file with new directory maps instead of appending. (default: False)",
+        help="Overwrite tracking file with new directory maps instead of appending.",
     )
 
     group3 = parser.add_argument_group(
@@ -106,9 +113,10 @@ def command_parse(args: list[str]):
         action="append",
         nargs=2,
         metavar=("PATH", "S3_DEST"),
+        default=argparse.SUPPRESS,
         help="Directory map to detail which local directory corresponds to S3 bucket "
         "and key prefix. Can be used multiple times to set multiple directories. "
-        "Local directories must be fully expanded. S3 destination in `s3://bucket-name/prefix` "
+        "Local directories must be absolute. S3 destination in `s3://bucket-name/prefix` "
         "format. Example: `--dir /home/josh/Documents s3://joshstockin/Documents`",
     )
 
@@ -127,19 +135,19 @@ def sanitize_arguments(args: argparse.Namespace):
     if args.dryrun:
         logger.debug("DRYRUN mode set")
 
+    logger.debug(f'User supplied tracking file "{args.file[0]}". Sanitizing...')
+    whitespace_pattern = re.compile(r"\s+")
+    args.file = os.path.expanduser(args.file[0])
+    args.file = re.sub(whitespace_pattern, "", args.file)
     if not args.file:
-        logger.debug("No tracking file set. Determining default...")
-        args.file = os.path.expanduser(os.path.join("~", ".state.s3sync"))
-    else:
-        logger.debug(f'User supplied tracking file "{args.file[0]}". Sanitizing...')
-        whitespace_pattern = re.compile(r"\s+")
-        args.file = re.sub(whitespace_pattern, "", args.file[0])
-        if not args.file:
-            logger.error("Inputted tracking file path string is empty")
-            exit(1)
-        if not os.path.isabs(args.file):
-            logger.error("Inputted tracking file path is not an absolute path")
-            exit(1)
+        logger.error("Inputted tracking file path string is empty")
+        exit(1)
+    if not os.path.isabs(args.file):
+        logger.error("Inputted tracking file path is not an absolute path")
+        exit(1)
+    if os.path.isdir(args.file):
+        logger.error("Inputted tracking file path resolves to an existing directory")
+        exit(1)
     logger.debug(f'Tracking file set to "{args.file}"')
 
     if args.purge:

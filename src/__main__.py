@@ -13,6 +13,8 @@ import sys
 
 import logging
 
+import pprint
+
 import s3_bsync
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ def main():
         level=logLevel,
     )
 
-    logger.debug(f"Parsed input arguments: {vars(args)}")
+    logger.debug(f"Parsed input arguments:\n{pprint.pformat(vars(args))}")
     logger.debug("Sanitizing input arguments")
     args = s3_bsync.command_parse.sanitize_arguments(args)
 

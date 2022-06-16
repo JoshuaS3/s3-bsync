@@ -8,4 +8,11 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-pass
+__all__ = ["sync_fileobject"]
+
+
+class sync_fileobject:
+    key = None
+    modified = 0
+    etag = None
+    size = 0
