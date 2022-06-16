@@ -11,7 +11,6 @@
 import os
 import re
 import argparse
-
 import logging
 
 from .meta import package_info
@@ -65,7 +64,7 @@ def command_parse(args: list[str]):
         "--debug",
         action="store_true",
         default=False,
-        help="Enables debug mode, which prints program information to stdout.",
+        help="Enables debug flag, which prints program information to stdout.",
     )
     group1.add_argument(
         "--dryrun",
@@ -132,17 +131,28 @@ def command_parse(args: list[str]):
     return parser.parse_args(args)
 
 
+class sync_settings:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 def sanitize_arguments(args: argparse.Namespace):
+    settings = sync_settings(debug=False, mode="SYNC")
+
     if args.debug:
-        logger.debug("DEBUG mode set")
+        logger.debug("DEBUG flag set")
+        settings.debug = True
 
     if args.init:
         logger.debug("INIT mode set")
+        settings.mode = "INIT"
     else:
         logger.debug("SYNC mode set implicitly (INIT not set)")
+        settings.mode = "SYNC"
 
     if args.dryrun:
         logger.debug("DRYRUN mode set")
+        settings.mode = "DRYRUN"
 
     logger.debug(f'User supplied tracking file "{args.file[0]}". Sanitizing...')
     whitespace_pattern = re.compile(r"\s+")
@@ -158,17 +168,34 @@ def sanitize_arguments(args: argparse.Namespace):
         logger.error("Inputted tracking file path resolves to an existing directory")
         exit(1)
     logger.debug(f'Tracking file set to "{args.file}"')
+    settings.syncfile = args.file
 
     if args.purge:
         if args.init:
             logger.debug("PURGE mode set")
+            settings.mode = "PURGE"
         else:
-            logger.debug("PURGE mode set, but INIT mode isn't. Ignoring")
+            logger.debug("PURGE flag set, but INIT mode isn't. Ignoring")
+
+    if args.dump:
+        logger.debug("DUMP mode set")
+        settings.mode = "DUMP"
 
     if args.overwrite:
         if args.init:
             logger.debug("OVERWRITE mode set")
+            settings.mode = "OVERWRITE"
         else:
-            logger.debug("OVERWRITE mode set, but INIT mode isn't. Ignoring")
+            logger.debug("OVERWRITE flag set, but INIT mode isn't. Ignoring")
 
-    return args
+    if hasattr(args, "dir"):
+        settings.dirmaps = {}
+        for dirmap in args.dir:
+            settings.dirmaps[dirmap[0]] = dirmap[1]
+
+    if hasattr(args, "rmdir"):
+        settings.rmdirs = []
+        for rmdir in args.rmdir:
+            settings.rmdirs.append(rmdir[0])
+
+    return settings

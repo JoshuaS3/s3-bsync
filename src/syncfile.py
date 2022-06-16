@@ -9,10 +9,9 @@
 # preserved in all copies or distributions of this software's source.
 
 import os
-
 import logging
 
-import s3_bsync.classes
+from .classes import *
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +19,17 @@ __all__ = ["syncfile"]
 
 
 CONTROL_BYTES = {
-    ["SIGNATURE"]: b"\x9D\x9F\x53\x33",
-    ["BUCKET_BEGIN"]: b"\x90",
-    ["BUCKET_END"]: b"\x91",
-    ["DIRECTORY_BEGIN"]: b"\x92",
-    ["DIRECTORY_END"]: b"\x93",
-    ["OBJECT_BEGIN"]: b"\x94",
-    ["OBJECT_END"]: b"\x95",
-    ["ETAG_MD5"]: b"\x96",
-    ["ETAG_OTHER"]: b"\x97",
-    ["METADATA_BEGIN"]: b"\x9A",
-    ["METADATA_END"]: b"\x9B",
+    "SIGNATURE": b"\x9D\x9F\x53\x33",
+    "BUCKET_BEGIN": b"\x90",
+    "BUCKET_END": b"\x91",
+    "DIRECTORY_BEGIN": b"\x92",
+    "DIRECTORY_END": b"\x93",
+    "OBJECT_BEGIN": b"\x94",
+    "OBJECT_END": b"\x95",
+    "ETAG_MD5": b"\x96",
+    "ETAG_OTHER": b"\x97",
+    "METADATA_BEGIN": b"\x9A",
+    "METADATA_END": b"\x9B",
 }
 
 CURRENT_VERSION = 1
@@ -53,7 +52,12 @@ class syncfile:
         self.file = open(state_file, "wb+")
         logger.debug(f"Opened s3sync state file at {state_file}")
 
-    def deserialize():
+    def file_exists(self):
+        if os.path.exists(self.file_path) and not os.path.isdir(self.file_path):
+            return True
+        return False
+
+    def deserialize(self):
         f = self.file
         logger.debug(f"Deserializing file {f}")
         f.seek(0)
@@ -63,35 +67,34 @@ class syncfile:
 
         b = f.read(4)
         if b is not CONTROL_BYTES["SIGNATURE"]:
-            raise CorruptSyncfileException(
-                "Inputted file signature bytes do not match expected s3state file signature (file corrupted or not an s3sync file format)"
+            logger.error(
+                "File signature does not match expected s3state file signature (not an s3sync file format or file corrupted)"
             )
+            exit(1)
 
         self.file_version = int(f.read(1))
         if self.file_version is 0 or self.file_version >= 1:
-            raise CorruptSyncfileException(
+            logger.error(
                 f"File version outside expected range (1..{CURRENT_VERSION}) (corrupt file)"
             )
+            exit(1)
 
         b = f.read(1)
         if b is not CONTROL_BYTES["METADATA_BEGIN"]:
-            raise CorruptSyncfileException(
-                "Expected metadata block begin byte not found (corrupt file)"
-            )
+            logger.error("Expected metadata block begin byte not found (corrupt file)")
+            exit(1)
         if self.file_version <= 1:
             self.last_synced_time = int.from_bytes(b.read(8), byteorder=ENDIANNESS)
             logger.debug(f"Last synced time reported as {self.last_synced_time}")
 
         b = f.read(1)
         if b is not CONTROL_BYTES["METADATA_END"]:
-            raise CorruptSyncfileException(
-                "Expected metadata block end byte not found (corrupt file)"
-            )
+            logger.error("Expected metadata block end byte not found (corrupt file)")
+            exit(1)
 
         while b := f.read(1):
             if b is not CONTROL_BYTES["BUCKET_BEGIN"]:
-                raise CorruptSyncfileException(
-                    b"Unexpected control byte {b} detected (corrupt file)"
-                )
+                logger.error(b"Unexpected control byte {b} detected (corrupt file)")
+                exit(1)
             bucket_name = get_string()
             bucket = classes.bucket(bucket_name)

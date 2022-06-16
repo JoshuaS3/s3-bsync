@@ -1,4 +1,4 @@
-# s3-bsync Copyright (c) 2021 Joshua Stockin
+# s3-bsync Copyright (c) 2022 Joshua Stockin
 # <https://joshstock.in>
 # <https://git.joshstock.in/s3-bsync>
 #
@@ -8,5 +8,16 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-from . import meta, command_parse, cli, classes, syncfile
-from .run import run
+import logging
+
+from . import *
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["run"]
+
+
+def run(settings):
+    logger.debug("Entering run sequence")
+    state = syncfile.syncfile(settings.syncfile)
+    state.deserialize()

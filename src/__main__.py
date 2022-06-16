@@ -10,18 +10,16 @@
 # preserved in all copies or distributions of this software's source.
 
 import sys
-
 import logging
-
 import pprint
 
-import s3_bsync
+from . import *
 
 logger = logging.getLogger(__name__)
 
 
 def main():
-    args = s3_bsync.command_parse.command_parse(sys.argv[1:])
+    args = command_parse.command_parse(sys.argv[1:])
 
     logLevel = logging.INFO
     if args.debug:
@@ -35,7 +33,11 @@ def main():
 
     logger.debug(f"Parsed input arguments:\n{pprint.pformat(vars(args))}")
     logger.debug("Sanitizing input arguments")
-    args = s3_bsync.command_parse.sanitize_arguments(args)
+    settings = command_parse.sanitize_arguments(args)
+
+    logger.debug(f"Interpreted settings:\n{pprint.pformat(vars(settings))}")
+
+    run(settings)
 
     return 0
 
