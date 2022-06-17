@@ -153,7 +153,7 @@ Bucket block {
         Begin directory map block control byte - 92
         Path to local directory                - null-terminated string
         S3 key prefix (no `/` termination)     - null-terminated string
-        Compress (gzip level)                  - 0-11 (4 bytes)
+        Compress (gzip level)                  - 0-11 (1 byte)
         Recursive sync                         - 1 byte boolean
         GPG encryption enabled                 - 1 byte boolean
         GPG encryption email                   - null-terminated string

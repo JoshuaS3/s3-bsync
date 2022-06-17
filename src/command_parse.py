@@ -79,9 +79,8 @@ def command_parse(args: list[str]):
 
     group2.add_argument(
         "--file",
-        nargs=1,
         metavar=("SYNCFILE"),
-        default=["~/.state.s3sync"],
+        default="~/.state.s3sync",
         help="The s3sync state file used to store tracking and state information. It should resolve to an absolute path.",
     )
     group2.add_argument(
@@ -137,26 +136,15 @@ class sync_settings:
 
 
 def sanitize_arguments(args: argparse.Namespace):
-    settings = sync_settings(debug=False, mode="SYNC")
+    settings = sync_settings()
 
     if args.debug:
         logger.debug("DEBUG flag set")
         settings.debug = True
 
-    if args.init:
-        logger.debug("INIT mode set")
-        settings.mode = "INIT"
-    else:
-        logger.debug("SYNC mode set implicitly (INIT not set)")
-        settings.mode = "SYNC"
-
-    if args.dryrun:
-        logger.debug("DRYRUN mode set")
-        settings.mode = "DRYRUN"
-
-    logger.debug(f'User supplied tracking file "{args.file[0]}". Sanitizing...')
+    logger.debug(f'User supplied tracking file "{args.file}". Sanitizing...')
     whitespace_pattern = re.compile(r"\s+")
-    args.file = os.path.expanduser(args.file[0])
+    args.file = os.path.expanduser(args.file)
     args.file = re.sub(whitespace_pattern, "", args.file)
     if not args.file:
         logger.error("Inputted tracking file path string is empty")
@@ -170,23 +158,31 @@ def sanitize_arguments(args: argparse.Namespace):
     logger.debug(f'Tracking file set to "{args.file}"')
     settings.syncfile = args.file
 
-    if args.purge:
-        if args.init:
-            logger.debug("PURGE mode set")
-            settings.mode = "PURGE"
-        else:
-            logger.debug("PURGE flag set, but INIT mode isn't. Ignoring")
-
-    if args.dump:
-        logger.debug("DUMP mode set")
-        settings.mode = "DUMP"
-
+    if args.init:
+        logger.debug("INIT mode set")
+        settings.mode = ["INIT"]
     if args.overwrite:
         if args.init:
             logger.debug("OVERWRITE mode set")
-            settings.mode = "OVERWRITE"
+            settings.mode.append("OVERWRITE")
         else:
             logger.debug("OVERWRITE flag set, but INIT mode isn't. Ignoring")
+    if args.purge:
+        if args.init:
+            logger.debug("PURGE mode set")
+            settings.mode.append("PURGE")
+        else:
+            logger.debug("PURGE flag set, but INIT mode isn't. Ignoring")
+    if args.dump:
+        logger.debug("DUMP mode set")
+        settings.mode = ["DUMP"]
+
+    if not hasattr(settings, "mode"):
+        logger.debug("No mode set. Enabling SYNC mode implicitly")
+        settings.mode = ["SYNC"]
+        if args.dryrun:
+            logger.debug("DRYRUN flag enabled")
+            settings.mode.append("DRYRUN")
 
     if hasattr(args, "dir"):
         settings.dirmaps = {}

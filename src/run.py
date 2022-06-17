@@ -20,4 +20,15 @@ __all__ = ["run"]
 def run(settings):
     logger.debug("Entering run sequence")
     state = syncfile.syncfile(settings.syncfile)
-    state.deserialize()
+    if "PURGE" in settings.mode:
+        logger.debug("Purging syncfile")
+        state.purge()
+        logger.debug("Success. Exiting...")
+        exit(0)
+    if state.file_exists() and not "OVERWRITE" in settings.mode:
+        logger.debug("Syncfile exists. Deserializing...")
+        state.deserialize()
+    if not state.file_exists() and not "INIT" in settings.mode:
+        logger.error("Not in INIT mode and state file is nonexistent.")
+        exit(1)
+    state.serialize()
