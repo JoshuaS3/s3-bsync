@@ -8,6 +8,8 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
+__all__ = ["sync_managed_bucket", "sync_directory_map", "sync_fileobject"]
+
 from .sync_managed_bucket import *
 from .sync_directory_map import *
 from .sync_fileobject import *

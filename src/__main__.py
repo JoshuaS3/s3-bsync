@@ -31,6 +31,9 @@ def main():
         level=logLevel,
     )
 
+    if args.debug:
+        logger.debug("Debug mode enabled")
+
     logger.debug(f"Parsed input arguments:\n{pprint.pformat(vars(args))}")
     logger.debug("Sanitizing input arguments")
     settings = command_parse.sanitize_arguments(args)

@@ -10,6 +10,7 @@
 
 import os
 import time
+import re
 import logging
 
 from .classes import *
@@ -40,11 +41,61 @@ ENDIANNESS = "little"
 class syncfile:
     file_path = None
     file_version = 0
+    file_size = 0
     last_synced_time = 0
-    managed_buckets = {}
+    managed_buckets = []
 
     def __init__(self, state_file: str):
         self.file_path = state_file
+
+    def map_directory(self, local_path, s3_path):
+        # Verify local path validity
+        if not os.path.isdir(local_path):
+            logger.error(
+                f'User supplied local directory ("{local_path}") is not a directory'
+            )
+            exit(1)
+
+        # Check S3 path supplied is valid
+        s3match = re.match("^s3:\/\/([a-z0-9][a-z0-9-]{1,61}[a-z0-9])\/(.*)$", s3_path)
+        if not s3match or len(s3match.groups()) != 2:
+            logger.error(f'User supplied invalid S3 path ("{s3_path}")')
+            exit(1)
+        bucket_name = s3match.group(1)
+        s3_prefix = s3match.group(2)
+        if s3_prefix.endswith("/") or len(s3_prefix) == 0:
+            logger.error(f'User supplied invalid S3 path prefix ("{s3_prefix}")')
+            exit(1)
+
+        logger.debug(
+            f'Local directory "{local_path}" mapped to bucket "{bucket_name}" at path prefix "{s3_prefix}"'
+        )
+
+        bucket = next(
+            (
+                bucket
+                for bucket in self.managed_buckets
+                if bucket.bucket_name == bucket_name
+            ),
+            None,
+        )
+        if not bucket:
+            bucket = sync_managed_bucket(bucket_name)
+            self.managed_buckets.append(bucket)
+
+        dirmap = f"{local_path}:{s3_prefix}"
+        dirmap_exists = next(
+            (
+                True
+                for x in bucket.directory_maps
+                if f"{x.local_path}:{x.s3_prefix}" == dirmap
+            ),
+            None,
+        )
+        if dirmap_exists:
+            logger.error(f"Directory mapping {local_path}:{s3_prefix} already exists")
+            exit(1)
+        bucket.create_dirmap(local_path, s3_prefix)
 
     def file_exists(self):
         if os.path.exists(self.file_path) and not os.path.isdir(self.file_path):
@@ -59,7 +110,8 @@ class syncfile:
                 logger.error("Attempt to purge (delete) a non-s3sync file")
                 exit(1)
         else:
-            logger.debug("File already nonexistent")
+            logger.error("State file nonexistent")
+            exit(1)
 
     def verify_file(self):
         if not self.file_exists():
@@ -87,7 +139,9 @@ class syncfile:
 
         for bucket in self.managed_buckets:
             b += CONTROL_BYTES["BUCKET_BEGIN"]
-            b += bucket.bucket_name.encode()
+            b += bucket.bucket_name.encode() + b"\x00"
+
+            logger.debug(f"Bucket {bucket.bucket_name}")
 
             for dirmap in bucket.directory_maps:
                 b += CONTROL_BYTES["DIRECTORY_BEGIN"]
@@ -121,18 +175,20 @@ class syncfile:
         f.write(b)
         f.truncate()
         f.close()
+        logger.debug(f"Finished writing to file (length {len(b)})")
 
     def deserialize(self):
         if not self.file_exists():
             logger.error("Attempt to deserialize file that doesn't exist")
             exit(1)
 
+        self.file_size = os.path.getsize(self.file_path)
         f = open(self.file_path, "rb")
         logger.debug(f"Deserializing file {f}")
         f.seek(0)
 
         def get_string():
-            return "".join(iter(lambda: f.read(1), "\x00"))
+            return b"".join(iter(lambda: f.read(1), b"\x00")).decode()
 
         b = f.read(4)
         if b != CONTROL_BYTES["SIGNATURE"]:
@@ -166,6 +222,62 @@ class syncfile:
                 logger.error(b"Unexpected control byte detected (corrupt file)")
                 exit(1)
             bucket_name = get_string()
-            bucket = classes.sync_managed_bucket(bucket_name)
+            bucket = sync_managed_bucket(bucket_name)
+            self.managed_buckets.append(bucket)
+
+            logger.debug(f"Bucket {bucket_name}")
+
+            while b2 := f.read(1):
+                if b2 == CONTROL_BYTES["DIRECTORY_BEGIN"]:
+                    local_path = get_string()
+                    s3_prefix = get_string()
+                    gz_compress = int.from_bytes(f.read(1), byteorder=ENDIANNESS)
+                    recursive = bool.from_bytes(f.read(1), byteorder=ENDIANNESS)
+                    gpg_enabled = bool.from_bytes(f.read(1), byteorder=ENDIANNESS)
+                    gpg_email = ""
+                    if gpg_enabled:
+                        gpg_email = get_string()
+                    if f.read(1) != CONTROL_BYTES["DIRECTORY_END"]:
+                        logger.error(
+                            "Expected directory block end byte not found (corrupt file)"
+                        )
+                        exit(1)
+                    bucket.create_dirmap(
+                        local_path,
+                        s3_prefix,
+                        gz_compress,
+                        recursive,
+                        gpg_enabled,
+                        gpg_email or "",
+                    )
+                    logger.debug(
+                        f"Created directory map {local_path}:{s3_prefix}, recursive={recursive}, gzip={gz_compress}, gpg_enabled={gpg_enabled}, gpg_email={gpg_email}"
+                    )
+
+                elif b2 == CONTROL_BYTES["OBJECT_BEGIN"]:
+                    key = get_string()
+                    modified = int.from_bytes(f.read(8), byteorder=ENDIANNESS)
+                    etag_type = f.read(1)
+                    etag = ""
+                    if etag_type == CONTROL_BYTES["ETAG_MD5"]:
+                        etag = f.read(16)
+                    elif etag_type == CONTROL_BYTES["ETAG_OTHER"]:
+                        etag = get_string()
+                    file_size = int.form_bytes(f.read(8), byteorder=ENDIANNESS)
+                    if f.read(1) != CONTROL_BYTES["OBJECT_END"]:
+                        logger.error(
+                            "Expected fileobject block end byte not found (corrupt file)"
+                        )
+                        exit(1)
+                    bucket.create_fileobject(key, modified, etag, file_size)
+                    logger.debug(
+                        f"Created fileobject {key} with ETAG {etag}, file size {file_size}, last modified {modified}"
+                    )
+
+                elif b2 == CONTROL_BYTES["BUCKET_END"]:
+                    break
+
+                else:
+                    logger.error("Unexpected control byte detected (corrupt file)")
 
         f.close()

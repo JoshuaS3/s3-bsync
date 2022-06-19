@@ -166,13 +166,15 @@ def sanitize_arguments(args: argparse.Namespace):
             logger.debug("OVERWRITE mode set")
             settings.mode.append("OVERWRITE")
         else:
-            logger.debug("OVERWRITE flag set, but INIT mode isn't. Ignoring")
+            logger.error("OVERWRITE mode requires INIT mode")
+            exit(1)
     if args.purge:
         if args.init:
             logger.debug("PURGE mode set")
             settings.mode.append("PURGE")
         else:
-            logger.debug("PURGE flag set, but INIT mode isn't. Ignoring")
+            logger.error("PURGE mode requires INIT mode")
+            exit(1)
     if args.dump:
         logger.debug("DUMP mode set")
         settings.mode = ["DUMP"]
@@ -185,13 +187,33 @@ def sanitize_arguments(args: argparse.Namespace):
             settings.mode.append("DRYRUN")
 
     if hasattr(args, "dir"):
+        if not args.init:
+            logger.error("--dir requires INIT mode")
+            exit(1)
         settings.dirmaps = {}
         for dirmap in args.dir:
-            settings.dirmaps[dirmap[0]] = dirmap[1]
+            if not os.path.isabs(dirmap[0]):
+                logger.error(f'Local path "{dirmap[0]}" is not absolute')
+                exit(1)
+            if not os.path.isdir(dirmap[0]):
+                logger.error(
+                    f'Local path "{dirmap[0]}" does not resolve to an existing directory'
+                )
+                exit(1)
+            settings.dirmaps[os.path.realpath(dirmap[0])] = dirmap[1]
 
     if hasattr(args, "rmdir"):
+        if not args.init:
+            logger.error("--rmdir requires INIT mode")
+            exit(1)
         settings.rmdirs = []
         for rmdir in args.rmdir:
-            settings.rmdirs.append(rmdir[0])
+            if not os.path.isabs(rmdir[0]):
+                logger.error(f'Local path "{rmdir[0]}" is not absolute')
+                exit(1)
+            if os.path.isfile(rmdir[0]):
+                logger.error(f'Local path "{rmdir[0]}" is an existing file')
+                exit(1)
+            settings.rmdirs.append(os.path.realpath(rmdir[0]))
 
     return settings

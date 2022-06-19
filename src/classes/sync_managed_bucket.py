@@ -9,7 +9,8 @@
 # preserved in all copies or distributions of this software's source.
 
 
-from . import sync_directory_map, sync_fileobject
+from .sync_directory_map import sync_directory_map
+from .sync_fileobject import sync_fileobject
 
 __all__ = ["sync_managed_bucket"]
 
@@ -23,6 +24,7 @@ class sync_managed_bucket:
         self.bucket_name = bucket_name
 
     def create_dirmap(
+        self,
         local_path,
         s3_prefix,
         gz_compress=0,
@@ -30,17 +32,17 @@ class sync_managed_bucket:
         gpg_enabled=False,
         gpg_email="",
     ):
-        dirmap = classes.sync_dirmap()
-        dirmap.local_path = ""
-        dirmap.s3_prefix = ""
-        dirmap.gz_compress = 0
-        dirmap.recursive = True
-        dirmap.gpg_enabled = False
-        dirmap.gpg_email = ""
+        dirmap = sync_directory_map()
+        dirmap.local_path = local_path
+        dirmap.s3_prefix = s3_prefix
+        dirmap.gz_compress = gz_compress
+        dirmap.recursive = recursive
+        dirmap.gpg_enabled = gpg_enabled
+        dirmap.gpg_email = gpg_email
         self.directory_maps.append(dirmap)
 
-    def create_fileobject(key, modified, etag, size):
-        fileobject = classes.sync_fileobject()
+    def create_fileobject(self, key, modified, etag, size):
+        fileobject = sync_fileobject()
         fileobject.key = None
         fileobject.modified = 0
         fileobject.etag = None
