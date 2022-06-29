@@ -8,13 +8,16 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
+from dataclasses import dataclass
+
 __all__ = ["sync_directory_map"]
 
 
+@dataclass
 class sync_directory_map:
-    local_path = ""
-    s3_prefix = ""
-    gz_compress = 0
-    recursive = True
-    gpg_enabled = False
-    gpg_email = ""
+    local_path: str = ""
+    s3_prefix: str = ""
+    gz_compress: int = 0
+    recursive: bool = True
+    gpg_enabled: bool = False
+    gpg_email: str = ""

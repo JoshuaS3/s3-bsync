@@ -8,11 +8,14 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
+from dataclasses import dataclass
+
 __all__ = ["sync_fileobject"]
 
 
+@dataclass
 class sync_fileobject:
-    key = None
-    modified = 0
-    etag = None
-    size = 0
+    key: str = None
+    modified: int = 0
+    etag: str = None
+    size: int = 0

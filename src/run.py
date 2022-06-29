@@ -88,4 +88,7 @@ def run(settings):
         if hasattr(settings, "dirmaps"):
             for local_path in settings.dirmaps:
                 state.map_directory(local_path, settings.dirmaps[local_path])
+        if hasattr(settings, "rmdirs"):
+            for local_path in settings.rmdirs:
+                state.remove_dirmap(local_path, settings.rmdirs[local_path])
         state.serialize()

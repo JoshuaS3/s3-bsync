@@ -16,12 +16,10 @@ __all__ = ["sync_managed_bucket"]
 
 
 class sync_managed_bucket:
-    bucket_name = ""
-    directory_maps = []
-    fileobjects = []
-
     def __init__(self, bucket_name):
         self.bucket_name = bucket_name
+        self.directory_maps = []
+        self.fileobjects = []
 
     def create_dirmap(
         self,

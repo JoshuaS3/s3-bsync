@@ -120,12 +120,12 @@ def command_parse(args: list[str]):
     group3.add_argument(
         "--rmdir",
         action="append",
-        nargs=1,
-        metavar=("RMPATH"),
+        nargs=2,
+        metavar=("RMPATH", "S3_DEST"),
         default=argparse.SUPPRESS,
         help="Remove tracked directory map by local directory identifier. Running "
-        "`--rmdir /home/josh/Documents` would remove the directory map from the s3sync"
-        "file and stop tracking/syncing that directory.",
+        "`--rmdir /home/josh/Documents s3://joshstockin/Documents` would remove the"
+        "directory map from the s3sync file and stop tracking/syncing that directory.",
     )
     return parser.parse_args(args)
 
@@ -206,14 +206,16 @@ def sanitize_arguments(args: argparse.Namespace):
         if not args.init:
             logger.error("--rmdir requires INIT mode")
             exit(1)
-        settings.rmdirs = []
+        settings.rmdirs = {}
         for rmdir in args.rmdir:
             if not os.path.isabs(rmdir[0]):
                 logger.error(f'Local path "{rmdir[0]}" is not absolute')
                 exit(1)
-            if os.path.isfile(rmdir[0]):
-                logger.error(f'Local path "{rmdir[0]}" is an existing file')
+            if not os.path.isdir(rmdir[0]):
+                logger.error(
+                    f'Local path "{rmdir[0]}" does not resolve to an existing directory'
+                )
                 exit(1)
-            settings.rmdirs.append(os.path.realpath(rmdir[0]))
+            settings.rmdirs[os.path.realpath(rmdir[0])] = rmdir[1]
 
     return settings
