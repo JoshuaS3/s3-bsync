@@ -12,6 +12,7 @@ import logging
 import datetime
 
 from . import syncfile
+from . import filescan
 from .classes import sync_managed_bucket
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ def dump(state):
             print(f"  Mapped directories:")
             for dirmap in bucket.directory_maps:
                 print(
-                    f'  > "{dirmap.local_path}" to "s3://{bucket.bucket_name}/{dirmap.s3_prefix}"'
+                    f"  > {syncfile.dirmap_stringify(dirmap.local_path, bucket.bucket_name, dirmap.s3_prefix)}"
                 )
                 print(f"    gz_compress {dirmap.gz_compress}")
                 print(f"    recursive   {dirmap.recursive}")
@@ -91,4 +92,10 @@ def run(settings):
         if hasattr(settings, "rmdirs"):
             for local_path in settings.rmdirs:
                 state.remove_dirmap(local_path, settings.rmdirs[local_path])
-        state.serialize()
+
+    if "SYNC" in settings.mode:
+        for bucket in state.managed_buckets:
+            filescan.by_bucket(bucket)
+
+    state.serialize()
+    exit(0)

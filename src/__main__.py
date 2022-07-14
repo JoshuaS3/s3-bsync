@@ -26,7 +26,7 @@ def main():
         logLevel = logging.DEBUG
 
     logging.basicConfig(
-        format="\x1b[0;37m[ \x1b[0;35m%(relativeCreated)04d \x1b[0;37m/ \x1b[0;33m%(name)s\x1b[0;37m:\x1b[1;36m%(funcName)s \x1b[0;37m/ \x1b[0;34m%(levelname)s \x1b[0;37m] \x1b[0m%(message)s",
+        format="\x1b[0;37m[ \x1b[0;35m%(relativeCreated)04d\x1b[0;37m / \x1b[0;33m%(name)s\x1b[0;37m:\x1b[1;36m%(funcName)s\x1b[0;37m / \x1b[0;34m%(levelname)s\x1b[0;37m ] \x1b[0m%(message)s",
         datefmt="%H:%M:%S",
         level=logLevel,
     )

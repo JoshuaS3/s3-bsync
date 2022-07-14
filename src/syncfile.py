@@ -17,7 +17,7 @@ from .classes import *
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["syncfile"]
+__all__ = ["syncfile", "dirmap_stringify"]
 
 
 CONTROL_BYTES = {
@@ -36,6 +36,10 @@ CONTROL_BYTES = {
 
 CURRENT_VERSION = 1
 ENDIANNESS = "little"
+
+
+def dirmap_stringify(local_path, bucket_name, s3_prefix):
+    return f'"{local_path}" <=> "s3://{bucket_name}/{s3_prefix}"'
 
 
 class syncfile:
@@ -71,19 +75,32 @@ class syncfile:
             f'Local directory "{local_path}" mapped to bucket "{bucket_name}" at path prefix "{s3_prefix}"'
         )
 
-        bucket = next((b for b in self.managed_buckets if b.bucket_name == bucket_name), False)
+        bucket = next(
+            (b for b in self.managed_buckets if b.bucket_name == bucket_name), False
+        )
 
         if not bucket:
             bucket = sync_managed_bucket(bucket_name)
             self.managed_buckets.append(bucket)
 
-        dirmap_exists = next((True for d in bucket.directory_maps if d.local_path == local_path and d.s3_prefix == s3_prefix), False)
+        dirmap_exists = next(
+            (
+                True
+                for d in bucket.directory_maps
+                if d.local_path == local_path and d.s3_prefix == s3_prefix
+            ),
+            False,
+        )
 
         if dirmap_exists:
-            logger.error(f"Directory map {local_path} <=> {s3_path} already exists")
+            logger.error(
+                f"Directory map {dirmap_stringify(local_path, bucket.bucket_name, s3_prefix)} already exists"
+            )
             exit(1)
 
-        logger.debug(f"Creating directory map {local_path} <=> {s3_path}")
+        logger.debug(
+            f"Creating directory map {dirmap_stringify(local_path, bucket.bucket_name, s3_prefix)}"
+        )
         bucket.create_dirmap(local_path, s3_prefix)
 
     def remove_dirmap(self, local_path, s3_path):
@@ -110,14 +127,22 @@ class syncfile:
             logger.error(f"Bucket s3://{bucket_name} is not tracked by the sync file")
             exit(1)
 
-        dirmaps = [x for x in bucket.directory_maps if x.local_path == local_path and x.s3_prefix == s3_prefix]
+        dirmaps = [
+            x
+            for x in bucket.directory_maps
+            if x.local_path == local_path and x.s3_prefix == s3_prefix
+        ]
         if len(dirmaps) > 0:
             for dirmap in dirmaps:
-                logger.debug(f"Deleting directory map {local_path} <=> {s3_path}")
+                logger.debug(
+                    f"Deleting directory map {dirmap_stringify(local_path, bucket.bucket_name, s3_prefix)}"
+                )
                 bucket.directory_maps.remove(dirmap)
                 del dirmap
         else:
-            logger.error(f"Directory map {local_path} <=> {s3_path} does not exist")
+            logger.error(
+                f"Directory map {dirmap_stringify(local_path, bucket.bucket_name, s3_prefix)} does not exist"
+            )
             exit(1)
 
     def file_exists(self):
@@ -161,7 +186,9 @@ class syncfile:
         b += CONTROL_BYTES["METADATA_END"]
 
         for bucket in self.managed_buckets:
-            if len(bucket.directory_maps) == 0: # Don't serialize any buckets with no dirmaps
+            if (
+                len(bucket.directory_maps) == 0
+            ):  # Don't serialize any buckets with no dirmaps
                 continue
 
             b += CONTROL_BYTES["BUCKET_BEGIN"]
@@ -180,7 +207,7 @@ class syncfile:
                     b += dirmap.gpg_email.encode() + b"\x00"
                 b += CONTROL_BYTES["DIRECTORY_END"]
                 logger.debug(
-                    f"Serialized directory map {dirmap.local_path} <=> s3://{bucket.bucket_name}/{dirmap.s3_prefix}, recursive={dirmap.recursive}, gzip={dirmap.gz_compress}, gpg_enabled={dirmap.gpg_enabled}, gpg_email={dirmap.gpg_email}"
+                    f"Serialized directory map {dirmap_stringify(dirmap.local_path, bucket.bucket_name, dirmap.s3_prefix)}"
                 )
 
             for fileobject in bucket.fileobjects:
@@ -195,6 +222,9 @@ class syncfile:
                     b += fileobject.etag.encode() + b"\x00"
                 b += fileobject.size.to_bytes(8, byteorder=ENDIANNESS)
                 b += CONTROL_BYTES["OBJECT_END"]
+                logger.debug(
+                    f"Serialized fileobject s3://{bucket.name}/{fileobject.key} ({fileobject.etag})"
+                )
 
             b += CONTROL_BYTES["BUCKET_END"]
 
@@ -280,7 +310,7 @@ class syncfile:
                         gpg_email,
                     )
                     logger.debug(
-                        f"Deserialized directory map {local_path} <=> s3://{bucket.bucket_name}/{s3_prefix}, recursive={recursive}, gzip={gz_compress}, gpg_enabled={gpg_enabled}, gpg_email={gpg_email}"
+                        f"Deserialized directory map {dirmap_stringify(local_path, bucket.bucket_name, s3_prefix)}"
                     )
 
                 elif b2 == CONTROL_BYTES["OBJECT_BEGIN"]:
@@ -300,7 +330,7 @@ class syncfile:
                         exit(1)
                     bucket.create_fileobject(key, modified, etag, file_size)
                     logger.debug(
-                        f"({bucket_name}) Created fileobject {key} with ETAG {etag}, file size {file_size}, last modified {modified}"
+                        f"Deserialized fileobject s3://{bucket.name}/{key} ({etag})"
                     )
 
                 elif b2 == CONTROL_BYTES["BUCKET_END"]:

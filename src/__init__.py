@@ -8,5 +8,5 @@
 # This comment block and its contents, including this disclaimer, MUST be
 # preserved in all copies or distributions of this software's source.
 
-from . import meta, command_parse, cli, classes, syncfile
+from . import meta, command_parse, cli, classes, syncfile, filescan
 from .run import run
